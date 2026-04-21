@@ -2,8 +2,9 @@ from http.server import BaseHTTPRequestHandler
 import urllib.parse
 import os
 import mimetypes
+import json
 
-from helpers import write_json
+from helpers import write_json, render_template
 
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -11,10 +12,10 @@ class HttpHandler(BaseHTTPRequestHandler):
         pr_url = urllib.parse.urlparse(self.path)
         if pr_url.path == '/':
             self.send_html_file('templates/index.html')
-        elif pr_url.path == '/contact.html':
-            self.send_html_file('templates/contact.html')
         elif pr_url.path == '/message.html':
             self.send_html_file('templates/message.html')
+        elif pr_url.path == '/read':
+            self.send_read_page()
         elif pr_url.path == '/style.css':
             self.send_static_file('static/style.css')
         elif pr_url.path.startswith('/static/'):
@@ -52,6 +53,23 @@ class HttpHandler(BaseHTTPRequestHandler):
                 self.wfile.write(fd.read())
         else:
             self.send_html_file('templates/error.html', 404)
+
+    def send_read_page(self):
+        messages = {}
+        data_file = 'storage/data.json'
+        
+        if os.path.exists(data_file):
+            try:
+                with open(data_file, 'r', encoding='utf-8') as f:
+                    messages = json.load(f)
+            except json.JSONDecodeError:
+                messages = {}
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        html = render_template('read.html', messages=messages)
+        self.wfile.write(html)
 
 
 
